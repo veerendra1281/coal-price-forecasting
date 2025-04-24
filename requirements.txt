@@ -7,3 +7,4 @@ xgboost
 statsmodels
 tensorflow
 openpyxl
+scikit-learn>=0.22
