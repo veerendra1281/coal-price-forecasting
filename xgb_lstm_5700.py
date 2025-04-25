@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 from xgboost import XGBRegressor
 from tensorflow.keras.models import Sequential
@@ -63,8 +63,11 @@ def run_xgb_lstm_5700(df, st):
         y_test_lstm_inv = scaler.inverse_transform(y_test_lstm)
 
         # Metrics
-        xgb_rmse = mean_squared_error(y_test, xgb_pred, squared=False)
-        lstm_rmse = mean_squared_error(y_test_lstm_inv, lstm_pred, squared=False)
+        xgb_mse = mean_squared_error(y_test, xgb_pred)
+        xgb_rmse = np.sqrt(xgb_mse)
+
+        lstm_mse = mean_squared_error(y_test_lstm_inv, lstm_pred)
+        lstm_rmse = np.sqrt(lstm_mse)
 
         # Streamlit Output
         st.subheader("XGBoost + LSTM (5700kcal)")
