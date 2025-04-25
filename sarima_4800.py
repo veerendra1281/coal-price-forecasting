@@ -30,12 +30,14 @@ def run_sarima_4800(df, st):
 
         # Metrics
         # Metrics
-  y_true = test.values.flatten()
-  y_pred = forecast.values.flatten()
+        # Metrics
+        y_true = test.values.flatten()
+        y_pred = forecast.values.flatten()
 
-  mse = mean_squared_error(y_true, y_pred)
-  rmse = np.sqrt(mse)
-  r2 = r2_score(y_true, y_pred)
+        mse = mean_squared_error(y_true, y_pred)
+        rmse = np.sqrt(mse)
+        r2 = r2_score(y_true, y_pred)
+)
 
         # Output
         st.subheader("Forecasting Results (SARIMA - 4800kcal)")
