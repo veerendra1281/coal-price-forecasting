@@ -12,37 +12,41 @@ def run_xgb_lstm_5700(df, st):
         # Clean column names
         df.columns = [col.strip().lower().replace(' ', '_') for col in df.columns]
 
+        # Show available columns (for debugging)
+        st.write("📋 Uploaded columns:", df.columns.tolist())
+
         # Handle date column flexibility
         if 'date' in df.columns:
             df['date'] = pd.to_datetime(df['date'], errors='coerce')
         elif 'date_and_time' in df.columns:
             df['date'] = pd.to_datetime(df['date_and_time'], errors='coerce')
         else:
-            st.error("❌ Date column not found. Please ensure your file has a 'date' or 'date_and_time' column.")
+            st.error("❌ Date column not found. Please include 'date' or 'date_and_time'.")
             return
 
-        # Handle price column
-        if '5700kcal' not in df.columns:
-            st.error("❌ Column '5700kcal' not found in uploaded data.")
+        # Automatically detect the '5700kcal' column
+        price_col = next((col for col in df.columns if '5700' in col), None)
+        if not price_col:
+            st.error("❌ Column for '5700kcal' not found in uploaded data.")
             return
 
-        df['5700kcal'] = pd.to_numeric(df['5700kcal'], errors='coerce')
-        df = df.dropna(subset=['date', '5700kcal'])
+        df[price_col] = pd.to_numeric(df[price_col], errors='coerce')
+        df = df.dropna(subset=['date', price_col])
         df.set_index('date', inplace=True)
 
         # XGBoost Forecasting
-        xgb_data = df[['5700kcal']].copy()
+        xgb_data = df[[price_col]].copy()
         for lag in range(1, 8):
-            xgb_data[f'lag_{lag}'] = xgb_data['5700kcal'].shift(lag)
+            xgb_data[f'lag_{lag}'] = xgb_data[price_col].shift(lag)
         xgb_data = xgb_data.dropna()
 
         train_xgb = xgb_data.iloc[:-30]
         test_xgb = xgb_data.iloc[-30:]
 
-        X_train = train_xgb.drop(columns='5700kcal')
-        y_train = train_xgb['5700kcal']
-        X_test = test_xgb.drop(columns='5700kcal')
-        y_test = test_xgb['5700kcal']
+        X_train = train_xgb.drop(columns=price_col)
+        y_train = train_xgb[price_col]
+        X_test = test_xgb.drop(columns=price_col)
+        y_test = test_xgb[price_col]
 
         xgb_model = XGBRegressor(n_estimators=100, learning_rate=0.1)
         xgb_model.fit(X_train, y_train)
@@ -50,7 +54,7 @@ def run_xgb_lstm_5700(df, st):
 
         # LSTM Forecasting
         scaler = MinMaxScaler()
-        scaled_prices = scaler.fit_transform(df[['5700kcal']])
+        scaled_prices = scaler.fit_transform(df[[price_col]])
 
         def create_sequences(data, seq_length):
             X, y = [], []
@@ -99,4 +103,4 @@ def run_xgb_lstm_5700(df, st):
         st.pyplot(fig)
 
     except Exception as e:
-        st.error(f"Error in XGB-LSTM model: {str(e)}")
+        st.error(f"❌ Error in XGB-LSTM model: {str(e)}")
