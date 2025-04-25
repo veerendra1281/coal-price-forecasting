@@ -62,8 +62,12 @@ def run_xgb_lstm_6000(df, st):
         lstm_preds = scaler.inverse_transform(lstm_preds_scaled)
 
         # Metrics
-        xgb_rmse = mean_squared_error(y_test_xgb, xgb_preds, squared=False)
-        lstm_rmse = mean_squared_error(scaler.inverse_transform(y_test_lstm), lstm_preds, squared=False)
+    xgb_mse = mean_squared_error(y_test, xgb_pred)
+    xgb_rmse = np.sqrt(xgb_mse)
+
+    lstm_mse = mean_squared_error(y_test_lstm_inv, lstm_pred)
+    lstm_rmse = np.sqrt(lstm_mse)
+
 
         # Streamlit Output
         st.subheader("XGBoost + LSTM (6000kcal)")
