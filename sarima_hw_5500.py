@@ -35,10 +35,15 @@ def run_sarima_hw_5500(df, st):
         hw_forecast = hw_fit.forecast(steps=forecast_horizon)
 
         # Metrics
-        sarima_rmse = mean_squared_error(test, sarima_forecast, squared=False)
-        sarima_r2 = r2_score(test, sarima_forecast)
-        hw_rmse = mean_squared_error(test, hw_forecast, squared=False)
-        hw_r2 = r2_score(test, hw_forecast)
+        # Metrics
+        y_true = test.values.flatten()
+        sarima_pred = sarima_forecast.values.flatten()
+        hw_pred = hw_forecast.values.flatten()
+
+        sarima_rmse = np.sqrt(mean_squared_error(y_true, sarima_pred))
+        sarima_r2 = r2_score(y_true, sarima_pred)
+        hw_rmse = np.sqrt(mean_squared_error(y_true, hw_pred))
+        hw_r2 = r2_score(y_true, hw_pred)
 
         # Display results in Streamlit
         st.subheader("SARIMA + Holt-Winters (5500kcal FOB)")
@@ -48,14 +53,9 @@ def run_sarima_hw_5500(df, st):
         st.write(f"**Holt-Winters R²:** {hw_r2:.2f}")
 
         # Plot
+        # Plot
         fig, ax = plt.subplots(figsize=(12, 6))
-        ax.plot(test.index, test.values, label='Actual', marker='o')
-        ax.plot(test.index, sarima_forecast.values, label='SARIMA Forecast', marker='x')
-        ax.plot(test.index, hw_forecast.values, label='Holt-Winters Forecast', marker='s')
-        ax.set_title('5500kcal FOB Price Forecast')
-        ax.legend()
-        ax.grid(True)
-        st.pyplot(fig)
+        ax.plot(test.index, y_true, label='Actual', marker='o')
+        ax.plot(test.index, sarima_pred, label='SARIMA Forecast', marker='x')
+        ax.plot(test.index, hw_pred, label='Holt-Winters Forecast', marker='s')
 
-    except Exception as e:
-        st.error(f"Error: {e}")
