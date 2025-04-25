@@ -8,6 +8,7 @@ from xgb_lstm_6000 import run_xgb_lstm_6000
 from arima_rf_5500cfr import run_arima_rf_5500cfr
 
 
+
 st.set_page_config(page_title="Coal Price Forecasting", layout="wide")
 st.title("🧮 Coal Price Forecasting App")
 
