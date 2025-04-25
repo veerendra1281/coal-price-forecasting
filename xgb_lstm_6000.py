@@ -1,47 +1,65 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 from xgboost import XGBRegressor
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
+import matplotlib.pyplot as plt
 
 def run_xgb_lstm_6000(df, st):
     try:
-        # Clean data
+        # Clean column names
         df.columns = [col.strip().lower().replace(' ', '_') for col in df.columns]
-        df['date_and_time'] = pd.to_datetime(df['date_and_time'], errors='coerce')
-        df['6000kcal_price'] = pd.to_numeric(df['6000kcal_price'], errors='coerce')
-        df = df.dropna(subset=['date_and_time', '6000kcal_price'])
-        df.set_index('date_and_time', inplace=True)
+
+        # Debug: show uploaded columns
+        st.write("📋 Uploaded columns:", df.columns.tolist())
+
+        # Handle date column
+        if 'date' in df.columns:
+            df['date'] = pd.to_datetime(df['date'], errors='coerce')
+        elif 'date_and_time' in df.columns:
+            df['date'] = pd.to_datetime(df['date_and_time'], errors='coerce')
+        else:
+            st.error("❌ Date column not found. Expected 'date' or 'date_and_time'.")
+            return
+
+        # Detect the 6000kcal price column
+        price_col = next((col for col in df.columns if '6000' in col), None)
+        if not price_col:
+            st.error("❌ Column for '6000kcal' not found in uploaded data.")
+            return
+
+        df[price_col] = pd.to_numeric(df[price_col], errors='coerce')
+        df = df.dropna(subset=['date', price_col])
+        df.set_index('date', inplace=True)
 
         # XGBoost Forecasting
-        xgb_df = df[['6000kcal_price']].copy()
+        xgb_data = df[[price_col]].copy()
         for lag in range(1, 8):
-            xgb_df[f'lag_{lag}'] = xgb_df['6000kcal_price'].shift(lag)
-        xgb_df = xgb_df.dropna()
+            xgb_data[f'lag_{lag}'] = xgb_data[price_col].shift(lag)
+        xgb_data = xgb_data.dropna()
 
-        train_xgb = xgb_df.iloc[:-30]
-        test_xgb = xgb_df.iloc[-30:]
+        train_xgb = xgb_data.iloc[:-30]
+        test_xgb = xgb_data.iloc[-30:]
 
-        X_train_xgb = train_xgb.drop(columns=['6000kcal_price'])
-        y_train_xgb = train_xgb['6000kcal_price']
-        X_test_xgb = test_xgb.drop(columns=['6000kcal_price'])
-        y_test_xgb = test_xgb['6000kcal_price']
+        X_train = train_xgb.drop(columns=price_col)
+        y_train = train_xgb[price_col]
+        X_test = test_xgb.drop(columns=price_col)
+        y_test = test_xgb[price_col]
 
         xgb_model = XGBRegressor(n_estimators=100, learning_rate=0.1)
-        xgb_model.fit(X_train_xgb, y_train_xgb)
-        xgb_preds = xgb_model.predict(X_test_xgb)
+        xgb_model.fit(X_train, y_train)
+        xgb_pred = xgb_model.predict(X_test)
 
         # LSTM Forecasting
         scaler = MinMaxScaler()
-        scaled_prices = scaler.fit_transform(df[['6000kcal_price']])
+        scaled_prices = scaler.fit_transform(df[[price_col]])
 
-        def create_sequences(data, seq_len):
+        def create_sequences(data, seq_length):
             X, y = [], []
-            for i in range(seq_len, len(data)):
-                X.append(data[i - seq_len:i])
+            for i in range(seq_length, len(data)):
+                X.append(data[i - seq_length:i])
                 y.append(data[i])
             return np.array(X), np.array(y)
 
@@ -58,16 +76,16 @@ def run_xgb_lstm_6000(df, st):
         ])
         model.compile(optimizer='adam', loss='mse')
         model.fit(X_train_lstm, y_train_lstm, epochs=50, batch_size=8, verbose=0)
-        lstm_preds_scaled = model.predict(X_test_lstm)
-        lstm_preds = scaler.inverse_transform(lstm_preds_scaled)
+        lstm_pred_scaled = model.predict(X_test_lstm)
+        lstm_pred = scaler.inverse_transform(lstm_pred_scaled)
+        y_test_lstm_inv = scaler.inverse_transform(y_test_lstm)
 
-        # Metrics
-    xgb_mse = mean_squared_error(y_test, xgb_pred)
-    xgb_rmse = np.sqrt(xgb_mse)
+        # ✅ Metrics (no squared=False)
+        xgb_mse = mean_squared_error(y_test, xgb_pred)
+        xgb_rmse = np.sqrt(xgb_mse)
 
-    lstm_mse = mean_squared_error(y_test_lstm_inv, lstm_pred)
-    lstm_rmse = np.sqrt(lstm_mse)
-
+        lstm_mse = mean_squared_error(y_test_lstm_inv, lstm_pred)
+        lstm_rmse = np.sqrt(lstm_mse)
 
         # Streamlit Output
         st.subheader("XGBoost + LSTM (6000kcal)")
@@ -75,14 +93,14 @@ def run_xgb_lstm_6000(df, st):
         st.write(f"**LSTM RMSE:** {lstm_rmse:.2f}")
 
         # Plot
-        fig, ax = plt.subplots(figsize=(12, 6))
-        ax.plot(test_xgb.index, y_test_xgb.values, label='Actual', marker='o')
-        ax.plot(test_xgb.index, xgb_preds, label='XGBoost Forecast', marker='x')
-        ax.plot(test_xgb.index, lstm_preds.flatten(), label='LSTM Forecast', marker='s')
+        fig, ax = plt.subplots(figsize=(12, 5))
+        ax.plot(y_test.index, y_test.values, label="Actual", marker='o')
+        ax.plot(y_test.index, xgb_pred, label="XGBoost Forecast", marker='x')
+        ax.plot(y_test.index, lstm_pred.flatten(), label="LSTM Forecast", marker='s')
         ax.set_title("6000kcal Price Forecast")
         ax.legend()
         ax.grid(True)
         st.pyplot(fig)
 
     except Exception as e:
-        st.error(f"Error in XGB-LSTM model: {str(e)}")
+        st.error(f"❌ Error in XGB-LSTM 6000 model: {str(e)}")
