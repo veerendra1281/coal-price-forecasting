@@ -1,12 +1,9 @@
 streamlit
 pandas
 numpy
-matplotlib
 scikit-learn
-xgboost
+matplotlib
+openpyxl
 statsmodels
+xgboost
 tensorflow
-openpyxl
-scikit-learn==0.24.2
-openpyxl
-
