@@ -29,10 +29,13 @@ def run_sarima_4800(df, st):
         forecast = results.forecast(steps=forecast_horizon)
 
         # Metrics
-      import numpy as np
+        # Metrics
+  y_true = test.values.flatten()
+  y_pred = forecast.values.flatten()
 
-      mse = mean_squared_error(y_true, y_pred)
-      rmse = np.sqrt(mse)  #  compatible with all versions
+  mse = mean_squared_error(y_true, y_pred)
+  rmse = np.sqrt(mse)
+  r2 = r2_score(y_true, y_pred)
 
         # Output
         st.subheader("Forecasting Results (SARIMA - 4800kcal)")
