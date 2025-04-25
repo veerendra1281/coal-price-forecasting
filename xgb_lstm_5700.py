@@ -9,9 +9,23 @@ import matplotlib.pyplot as plt
 
 def run_xgb_lstm_5700(df, st):
     try:
-        # Clean data
+        # Clean column names
         df.columns = [col.strip().lower().replace(' ', '_') for col in df.columns]
-        df['date'] = pd.to_datetime(df['date'], errors='coerce')
+
+        # Handle date column flexibility
+        if 'date' in df.columns:
+            df['date'] = pd.to_datetime(df['date'], errors='coerce')
+        elif 'date_and_time' in df.columns:
+            df['date'] = pd.to_datetime(df['date_and_time'], errors='coerce')
+        else:
+            st.error("❌ Date column not found. Please ensure your file has a 'date' or 'date_and_time' column.")
+            return
+
+        # Handle price column
+        if '5700kcal' not in df.columns:
+            st.error("❌ Column '5700kcal' not found in uploaded data.")
+            return
+
         df['5700kcal'] = pd.to_numeric(df['5700kcal'], errors='coerce')
         df = df.dropna(subset=['date', '5700kcal'])
         df.set_index('date', inplace=True)
