@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.metrics import mean_squared_error, r2_score
-
+import numpy as np
 def run_sarima_4800(df, st):
     try:
         # Clean data
@@ -29,8 +29,10 @@ def run_sarima_4800(df, st):
         forecast = results.forecast(steps=forecast_horizon)
 
         # Metrics
-        rmse = mean_squared_error(test, forecast, squared=False)
-        r2 = r2_score(test, forecast)
+      import numpy as np
+
+      mse = mean_squared_error(y_true, y_pred)
+      rmse = np.sqrt(mse)  #  compatible with all versions
 
         # Output
         st.subheader("Forecasting Results (SARIMA - 4800kcal)")
