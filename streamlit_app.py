@@ -4,7 +4,7 @@ import pandas as pd
 from sarima_4800 import run_sarima_4800
 from sarima_hw_5500 import run_sarima_hw_5500
 from xgb_lstm_5700 import run_xgb_lstm_5700
-from xgb_lstm_6000 import run_xgb_lstm_6000  
+from xgb_lstm_6000 import run_xgb_lstm_6000
 from arima_rf_5500cfr import run_arima_rf_5500cfr
 
 
